@@ -1,15 +1,33 @@
-import express from 'express';
+import express from "express";
+import { MODEL, ai } from "../gemini.js";
 
 const router = express.Router();
 
-// TODO (Step 3): replace this stub with a real Gemini *vision* call.
-// Right now it ignores the uploaded image and returns a sample question.
-router.post('/', async (req, res) => {
-  res.json({
-    question: 'Sample question about your photo. Wire up Gemini vision in Step 3!',
-    options: ['Option A', 'Option B', 'Option C', 'Option D'],
-    answer: 'Option A',
+const PROMPT = `You are a trivia question writer.
+Look at the image and write ONE fun multiple-choice question about what is in it.
+Reply as JSON with this exact shape:
+{ "question": string, "options": [string, string, string, string], "answer": string }
+The "answer" must be exactly one of the four options. No preamble, no markdown.
+`;
+
+router.post("/", async (req, res) => {
+  const { image, mimeType } = req.body;
+
+  const interaction = await ai.interactions.create({
+    model: MODEL,
+    input: [
+      { type: "image", data: image, mime_type: mimeType },
+      { type: "text", text: "Write a trivia question about this image." },
+    ],
+    system_instruction: PROMPT,
+    generation_config: { temperature: 0.9 },
+    response_format: { type: "text", mime_type: "application/json" },
   });
+
+  console.log(interaction.output_text);
+
+  const quiz = JSON.parse(interaction.output_text);
+  res.json(quiz);
 });
 
 export default router;

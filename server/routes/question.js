@@ -1,18 +1,29 @@
-import express from 'express';
+import express from "express";
+import { MODEL, ai } from "../gemini.js";
 
 const router = express.Router();
 
-// TODO (Step 2): replace this stub with a real Gemini call.
-// Right now it ignores the topic and always returns the same sample
-// question — just so the app runs end to end before we wire in the AI.
-router.post('/', async (req, res) => {
+const PROMPT = `You are a trivia question writer.
+Given a topic, write ONE fun multiple-choice question about it.
+Reply as JSON with this exact shape:
+{ "question": string, "options": [string, string, string, string], "answer": string }
+The "answer" must be exactly one of the four options. No preamble, no markdown.
+`;
+
+router.post("/", async (req, res) => {
   const { topic } = req.body;
 
-  res.json({
-    question: `Sample question about "${topic || 'anything'}". Wire up Gemini in Step 2!`,
-    options: ['Option A', 'Option B', 'Option C', 'Option D'],
-    answer: 'Option A',
+  const interaction = await ai.interactions.create({
+    model: MODEL,
+    input: `Topic: ${topic}`,
+    system_instruction: PROMPT,
+    generation_config: { temperature: 0.9 },
   });
+
+  console.log(interaction.output_text);
+
+  const quiz = JSON.parse(interaction.output_text);
+  res.json(quiz);
 });
 
 export default router;
